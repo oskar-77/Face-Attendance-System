@@ -1,0 +1,3 @@
+- [JWT sub must be string](jwt-jose-sub-string.md) — python-jose rejects integer `sub` claims; always cast user.id to str() before signing, int() after decoding.
+- [opencv-contrib for cv2.face](opencv-contrib.md) — `cv2.face.LBPHFaceRecognizer_create()` requires `opencv-contrib-python-headless`, NOT `opencv-python-headless`.
+- [admin-panel workflow port timing](admin-panel-port-timing.md) — Vite starts fine on port 20130 but restart_workflow sometimes times out; retry with 90s timeout. Port IS reachable (HTTP 200 confirmed).

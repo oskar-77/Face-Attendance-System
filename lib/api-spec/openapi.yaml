@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Attendance System API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: employees
+    description: Employee management
+  - name: attendance
+    description: Attendance tracking
+  - name: reports
+    description: Reports
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +32,367 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginCredentials"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        "401":
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: List all employees
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: Create a new employee
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: Get employee by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "404":
+          description: Not found
+    put:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: Update employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeUpdate"
+      responses:
+        "200":
+          description: Updated employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: Delete employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /employees/{id}/train:
+    post:
+      operationId: trainEmployee
+      tags: [employees]
+      summary: Train face recognition model for employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Training result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingResult"
+
+  /employees/{id}/photos/count:
+    get:
+      operationId: getEmployeePhotoCount
+      tags: [employees]
+      summary: Get number of captured photos for employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Photo count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoCount"
+
+  /recognize:
+    post:
+      operationId: recognizeFace
+      tags: [attendance]
+      summary: Recognize face and record attendance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FrameData"
+      responses:
+        "200":
+          description: Recognition result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecognitionResult"
+
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: List attendance records
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+        - name: employee_id
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendancePage"
+
+  /attendance/today:
+    get:
+      operationId: getTodayAttendance
+      tags: [attendance]
+      summary: Get today's attendance summary
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Today's attendance
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/stats:
+    get:
+      operationId: getAttendanceStats
+      tags: [attendance]
+      summary: Get dashboard statistics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceStats"
+
+  /attendance/{id}/checkout:
+    post:
+      operationId: manualCheckout
+      tags: [attendance]
+      summary: Manually check out an employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+
+  /reports/daily:
+    get:
+      operationId: getDailyReport
+      tags: [reports]
+      summary: Get daily attendance report
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Daily report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyReport"
+
+  /reports/monthly:
+    get:
+      operationId: getMonthlyReport
+      tags: [reports]
+      summary: Get monthly attendance report
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyReport"
+
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [employees]
+      summary: List all departments
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Departments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +402,258 @@ components:
       required:
         - status
 
+    LoginCredentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthToken:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/AdminUser"
+
+    AdminUser:
+      type: object
+      required: [id, username, role]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+
+    Employee:
+      type: object
+      required: [id, name, employee_number, department, position, is_trained, created_at]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        employee_number:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        is_trained:
+          type: boolean
+        photo_count:
+          type: ["integer", "null"]
+        avatar_url:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    EmployeeInput:
+      type: object
+      required: [name, employee_number, department, position]
+      properties:
+        name:
+          type: string
+        employee_number:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+
+    EmployeeUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        employee_number:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+
+    TrainingResult:
+      type: object
+      required: [success, message, photos_used]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        photos_used:
+          type: integer
+
+    PhotoCount:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+
+    FrameData:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          description: Base64-encoded JPEG frame
+
+    FaceDetection:
+      type: object
+      required: [employee_id, name, confidence, bbox]
+      properties:
+        employee_id:
+          type: ["integer", "null"]
+        name:
+          type: string
+        confidence:
+          type: number
+        bbox:
+          type: array
+          items:
+            type: integer
+
+    RecognitionResult:
+      type: object
+      required: [faces, attendance_recorded]
+      properties:
+        faces:
+          type: array
+          items:
+            $ref: "#/components/schemas/FaceDetection"
+        attendance_recorded:
+          type: boolean
+
+    AttendanceRecord:
+      type: object
+      required: [id, employee_id, employee_name, check_in, date]
+      properties:
+        id:
+          type: integer
+        employee_id:
+          type: integer
+        employee_name:
+          type: string
+        employee_number:
+          type: string
+        department:
+          type: string
+        check_in:
+          type: string
+        check_out:
+          type: ["string", "null"]
+        duration_minutes:
+          type: ["integer", "null"]
+        date:
+          type: string
+        snapshot_url:
+          type: ["string", "null"]
+
+    AttendancePage:
+      type: object
+      required: [records, total, page, limit]
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    AttendanceStats:
+      type: object
+      required: [total_employees, trained_employees, present_today, absent_today, checked_out_today, avg_work_hours]
+      properties:
+        total_employees:
+          type: integer
+        trained_employees:
+          type: integer
+        present_today:
+          type: integer
+        absent_today:
+          type: integer
+        checked_out_today:
+          type: integer
+        avg_work_hours:
+          type: number
+        recent_activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+
+    DailyReport:
+      type: object
+      required: [date, total_employees, present, absent, late, records]
+      properties:
+        date:
+          type: string
+        total_employees:
+          type: integer
+        present:
+          type: integer
+        absent:
+          type: integer
+        late:
+          type: integer
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+
+    MonthlyReport:
+      type: object
+      required: [month, year, summary, by_employee]
+      properties:
+        month:
+          type: integer
+        year:
+          type: integer
+        summary:
+          $ref: "#/components/schemas/MonthlySummary"
+        by_employee:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmployeeMonthlyStats"
+
+    MonthlySummary:
+      type: object
+      required: [total_days, working_days, total_checkins, avg_attendance_rate]
+      properties:
+        total_days:
+          type: integer
+        working_days:
+          type: integer
+        total_checkins:
+          type: integer
+        avg_attendance_rate:
+          type: number
+
+    EmployeeMonthlyStats:
+      type: object
+      required: [employee_id, name, days_present, days_absent, avg_work_hours]
+      properties:
+        employee_id:
+          type: integer
+        name:
+          type: string
+        department:
+          type: string
+        days_present:
+          type: integer
+        days_absent:
+          type: integer
+        avg_work_hours:
+          type: number
+        attendance_rate:
+          type: number

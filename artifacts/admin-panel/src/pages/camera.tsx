@@ -122,15 +122,27 @@ export default function CameraPage() {
 
   const startCamera = async () => {
     setCameraError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(
+        "متصفحك لا يدعم الوصول للكاميرا، أو الصفحة لا تعمل عبر HTTPS. جرب فتح التطبيق في تبويب مستقل."
+      );
+      return;
+    }
+
+    const attemptGetStream = async (constraints: MediaStreamConstraints) =>
+      navigator.mediaDevices.getUserMedia(constraints);
+
     try {
-      const constraints: MediaStreamConstraints = {
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "user",
-        }
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Try with ideal constraints first, then fall back to bare `true`
+      let stream: MediaStream;
+      try {
+        stream = await attemptGetStream({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+      } catch {
+        stream = await attemptGetStream({ video: true });
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;

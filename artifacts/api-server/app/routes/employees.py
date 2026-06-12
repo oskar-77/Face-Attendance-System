@@ -50,9 +50,8 @@ def list_employees(
             EmployeeDB.name.ilike(f"%{search}%")
             | EmployeeDB.employee_number.ilike(f"%{search}%")
         )
-    total = q.count()
-    employees = q.order_by(EmployeeDB.name).offset((page - 1) * limit).limit(limit).all()
-    return {"employees": [emp_to_dict(e) for e in employees], "total": total, "page": page, "limit": limit}
+    employees = q.order_by(EmployeeDB.name).all()
+    return [emp_to_dict(e) for e in employees]
 
 
 @router.post("", status_code=201)
